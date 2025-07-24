@@ -1,3 +1,4 @@
+// ---------------- Header file ------------------
 #include <Wire.h>
 #include "RTClib.h"
 #include <Adafruit_GFX.h>
@@ -36,6 +37,53 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 // ------------------ Time Tracker ------------------
 int lastSecond = -1;
 
+//--------------------Structure of compartment data---------------------------------------------------
+
+struct MedicineSchedule{
+    int hour; // Time to take medicine (hour)
+    int minute; // Time to take medicine(minute)
+    int pillCount; // How many pills are available
+    bool takenToday; // To track if pill was already taken today
+};
+
+struct component_data {
+  int noPillstored;// Number of pills stored in particular compartment
+  int noPillRemaining;// Number of remaining pills in a particular compartment 
+  struct MedicineSchedule schedule[6]; // schedule per compartment A (0), B (1), C (2), D (3)  
+};
+
+struct component_data component[4];// Compartments A(0), B(1), C(2), D(3)
+
+// ------------------ Setup -------------------------
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Starting RTC...");
+
+  Wire.begin(); // Ensure I2C is initialized
+
+  // TFT Init
+  tft.begin();
+  tft.fillScreen(ILI9341_BLACK);
+  tft.setRotation(1); // Landscape
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+
+  // RTC Init
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    while (1);  // Halt
+  }
+
+  // If RTC lost power, reset the time
+  if (rtc.lostPower()) {
+    Serial.println("RTC lost power, setting time to compile time...");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+
+  Serial.println("Setup complete.");
+}
+
+
 // ------------------ Function to Print Time ------------------
 void printCurrentTime() {
   DateTime now = rtc.now();
@@ -67,73 +115,38 @@ void printCurrentTime() {
   }
 }
 
-//--------------------Structure of compartment data---------------------------------------------------
-
-struct MedicineSchedule{
-    int hour; // Time to take medicine (hour)
-    int minute; // Time to take medicine(minute)
-    int pillCount; // How many pills are available
-    bool takenToday; // To track if pill was already taken today
-};
-
-struct component_data {
-  int noPillstored;// Number of pills stored in particular compartment
-  int noPillRemaining;// Number of remaining pills in a particular compartment 
-  struct MedicineSchedule schedule[6]; // schedule per compartment A (0), B (1), C (2), D (3)  
-};
-
-struct component_data component[4];// Compartments A(0), B(1), C(2), D(3)
-
 //--------------------- Menu function ---------------------------------------------------------------
 
 void menu(){
-  tft.setCursor(10, 10);
-  tft.setTextSize(2);
-  tft.setTextColor(ILI9341_GREEN);
-  tft.print("Menu:- ");
+  int lock=1;
+  do{
+    tft.setCursor(10, 10);
+    tft.setTextSize(2);
+    tft.setTextColor(ILI9341_GREEN);
+    tft.print("Menu:- ");
     
-  tft.setCursor(10, 45);
-  tft.setTextSize(2);
-  tft.setTextColor(ILI9341_CYAN);
-  tft.print("1. Refill the Pills in the Medical Box");
-  tft.print("2. Schedule the Medicine");
-  tft.print("3. Exit");
-  tft.print("Enter the Your Choice:");
-  char key = keypad.getKey();
-  switch(key){
+    tft.setCursor(10, 45);
+    tft.setTextSize(2);
+    tft.setTextColor(ILI9341_CYAN);
+    tft.print("1. Refill the Pills in the Medical Box");
+    tft.print("2. Schedule the Medicine");
+    tft.print("3. Exit");
+    tft.print("Enter the Your Choice:");
+    int key = keypad.getKey();
     
-  
-  }
-  
-}
-
-// ------------------ Setup -------------------------
-void setup() {
-  Serial.begin(115200);
-  Serial.println("Starting RTC...");
-
-  Wire.begin(); // Ensure I2C is initialized
-
-  // TFT Init
-  tft.begin();
-  tft.fillScreen(ILI9341_BLACK);
-  tft.setRotation(1); // Landscape
-  tft.setTextColor(ILI9341_WHITE);
-  tft.setTextSize(2);
-
-  // RTC Init
-  if (!rtc.begin()) {
-    Serial.println("Couldn't find RTC");
-    while (1);  // Halt
-  }
-
-  // If RTC lost power, reset the time
-  if (rtc.lostPower()) {
-    Serial.println("RTC lost power, setting time to compile time...");
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  }
-
-  Serial.println("Setup complete.");
+    switch(key){
+        case 1:
+               break;
+        case 2:
+               break;
+        case 3:
+               tft.print("Exit from menu");
+               lock=0;
+               break;
+        default:
+               break; 
+    }
+  }while(lock)
 }
 
 void loop() {
@@ -160,6 +173,8 @@ void loop() {
     tft.print("Key: ");
     tft.print(key);
   }
-
+ if (key == '#') {
+    menu();
+  }
   delay(100);  // Small delay for responsiveness
 }
